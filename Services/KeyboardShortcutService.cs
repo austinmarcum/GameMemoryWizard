@@ -34,19 +34,19 @@ namespace GameMemoryWizard {
             if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN) {
                 int vkCode = Marshal.ReadInt32(lParam);
                 if (Control.ModifierKeys == Keys.Shift && vkCode == (int)Keys.Add) {
-                    ScanQueueService.AddToQueue("Increase");
+                    ThreadService.AddToQueue("Increase");
                     return (IntPtr)1; 
                 }
                 if (Control.ModifierKeys == Keys.Shift && vkCode == (int)Keys.Subtract) {
-                    ScanQueueService.AddToQueue("Decrease");
+                    ThreadService.AddToQueue("Decrease");
                     return (IntPtr)1; 
                 }
                 if (Control.ModifierKeys == Keys.Shift && vkCode == (int)Keys.E) {
-                    ScanQueueService.AddToQueue("Equals");
+                    ThreadService.AddToQueue("Equals");
                     return (IntPtr)1; 
                 }
                 if (Control.ModifierKeys == Keys.Shift && vkCode == (int)Keys.C) {
-                    ScanQueueService.AddToQueue("Changed");
+                    ThreadService.AddToQueue("Changed");
                     return (IntPtr)1; 
                 }
             }

@@ -8,31 +8,32 @@ using System.Threading;
 namespace GameMemoryWizard {
     internal class Program
     {   
-
         // Todo -> Save data to file per game #1
         static void Main(string[] args)
         {
             try {
-                Thread keyboardShortcutThread = new Thread(() => {
-                    KeyboardShortcutService.SetKeyboardShortcut();
-                    
-                });
-                keyboardShortcutThread.Start();
-
                 Thread menuThread = new Thread(() => {
-                    MenuService.DisplayWelcome();
+                    MenuService.DisplayMenu();
                 });
                 menuThread.Start();
 
                 // Todo -> Checksum of app
+                ThreadService.WaitForProcessName();
 
-                List<ProcessMemory> previousScan = MemoryReadService.SearchAllMemoryOfProcess("BasicConsole", 80, 100);
+                List<ProcessMemory> previousScan = MemoryReadService.SearchAllMemoryOfProcess(ThreadService.RetrieveProcessName(), 80, 100);
+
+                Thread keyboardShortcutThread = new Thread(() => {
+                    KeyboardShortcutService.SetKeyboardShortcut();
+                });
+                keyboardShortcutThread.Start();
+
                 Console.WriteLine("Ready!");
                 bool hasFoundAddress = false;
                 while (!hasFoundAddress) {
-                    if (ScanQueueService.RetrieveQueueDepth() > 0) {
-                        string scanType = ScanQueueService.Dequeue();
-                        var fitleredProcesses = MemoryReadService.FilterResults(previousScan, "BasicConsole", scanType);
+                    if (ThreadService.RetrieveQueueDepth() > 0) {
+                        ThreadService.SetIsCurrentlyScanning(true);
+                        string scanType = ThreadService.Dequeue();
+                        var fitleredProcesses = MemoryReadService.FilterResults(previousScan, ThreadService.RetrieveProcessName(), scanType);
                         if (fitleredProcesses.Count == 1 && fitleredProcesses.First().CurrentCountOfMemoryLocations == 1) {
                             hasFoundAddress = true;
                             // Todo -> Play Audio File when you find it #3
@@ -42,11 +43,10 @@ namespace GameMemoryWizard {
                         } else {
                             previousScan = fitleredProcesses;
                         }
+                        ThreadService.SetIsCurrentlyScanning(false);
                     }
                     Thread.Sleep(250);
                 }
-
-                menuThread.Join();
             } catch (Exception e) {
                 Console.WriteLine($"Error: {e.Message}");
                 Thread.Sleep(5000);
