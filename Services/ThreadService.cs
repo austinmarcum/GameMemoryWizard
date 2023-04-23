@@ -6,6 +6,9 @@ namespace GameMemoryWizard {
         private static ConcurrentQueue<string> queue = new ConcurrentQueue<string>();
         private static string processName;
         private static bool isCurrentlyScanning;
+        private static bool hasFoundAddress;
+        private static string gameData;
+        private static string currentCheat;
 
         public static void AddToQueue(string scanType) {
             queue.Enqueue(scanType);
@@ -45,6 +48,30 @@ namespace GameMemoryWizard {
                 Thread.Sleep(500);
             }
             return isCurrentlyScanning;
+        }
+
+        public static void SetHasFoundAddress(bool hasFoundMemoryAddress) {
+            hasFoundAddress = hasFoundMemoryAddress;
+        }
+
+        public static bool RetrieveHasFoundAddress() {
+            return hasFoundAddress;
+        }
+
+        public static void SetGameData(string uiGameData) {
+            gameData = uiGameData;
+        }
+
+        public static string RetrieveGameData() {
+            return gameData;
+        }
+
+        public static void SetCurrentCheat(string cheat) {
+            currentCheat = cheat;
+        }
+
+        public static string RetrieveCurrentCheat() {
+            return currentCheat;
         }
     }
 }

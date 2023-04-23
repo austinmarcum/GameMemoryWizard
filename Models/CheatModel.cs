@@ -15,9 +15,18 @@ namespace GameMemoryWizard.Models {
     public class CheatModel {
         public string CheatName { get; set; }
         public bool IsEnabled { get; set; }
-        public int OffsetInMemory { get; set; }
+        public long OffsetInMemory { get; set; }
         public string RegionInfo { get; set; }
         public CheatType CheatType { get; set; }
         public int Amount { get; set; }
+
+        public CheatModel(string cheatName, CheatType cheatType, int amount) {
+            CheatName = cheatName;
+            CheatType = cheatType;
+            Amount = amount;
+            IsEnabled = true;
+        }
+
+        public CheatModel() { }
     }
 }

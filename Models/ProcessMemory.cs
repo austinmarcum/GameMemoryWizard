@@ -71,5 +71,9 @@ namespace GameMemoryWizard.Models {
             DoesMemoryFileExist = false;
             CurrentCountOfMemoryLocations = 0;
         }
+
+        public string RetrieveRegionInfo() {
+            return $"{AllocationProtect.ToString()}-{RegionSize}-{State}-{Protect}-{Type}";
+        }
     }
 }

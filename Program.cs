@@ -3,12 +3,16 @@ using GameMemoryWizard.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 
 namespace GameMemoryWizard {
     internal class Program
-    {   
-        // Todo -> Save data to file per game #1
+    {
+        // Todo -> Handle Initial Scan
+        // Todo -> Add a second cheat
+        // Todo -> Checksum of app
+        // Todo -> Play Audio File when you find it #3
         static void Main(string[] args)
         {
             try {
@@ -17,7 +21,6 @@ namespace GameMemoryWizard {
                 });
                 menuThread.Start();
 
-                // Todo -> Checksum of app
                 ThreadService.WaitForProcessName();
 
                 List<ProcessMemory> previousScan = MemoryReadService.SearchAllMemoryOfProcess(ThreadService.RetrieveProcessName(), 80, 100);
@@ -28,17 +31,21 @@ namespace GameMemoryWizard {
                 keyboardShortcutThread.Start();
 
                 Console.WriteLine("Ready!");
-                bool hasFoundAddress = false;
-                while (!hasFoundAddress) {
+                ThreadService.SetHasFoundAddress(false);
+                while (!ThreadService.RetrieveHasFoundAddress()) {
                     if (ThreadService.RetrieveQueueDepth() > 0) {
                         ThreadService.SetIsCurrentlyScanning(true);
                         string scanType = ThreadService.Dequeue();
                         var fitleredProcesses = MemoryReadService.FilterResults(previousScan, ThreadService.RetrieveProcessName(), scanType);
                         if (fitleredProcesses.Count == 1 && fitleredProcesses.First().CurrentCountOfMemoryLocations == 1) {
-                            hasFoundAddress = true;
-                            // Todo -> Play Audio File when you find it #3
-                            Console.WriteLine("FOUND IT!!!!!!!!!!");
+                            ThreadService.SetHasFoundAddress(true);
+
+                            GameModel gameModel = JsonSerializer.Deserialize<GameModel>(ThreadService.RetrieveGameData());
+                            CheatModel cheat = gameModel.RetrieveCheat(ThreadService.RetrieveCurrentCheat());
                             long offset = fitleredProcesses.First().CalculateOffsetForSingleMemoryLocation();
+                            cheat.OffsetInMemory = offset;
+                            cheat.RegionInfo = fitleredProcesses.First().RetrieveRegionInfo();
+                            FileService.SerializeObjectToFile(gameModel, $"{gameModel.GameName}.json");
                             Console.WriteLine($"Offset: {offset}");
                         } else {
                             previousScan = fitleredProcesses;
@@ -60,3 +67,4 @@ namespace GameMemoryWizard {
 
 // Potential Todos
 // Thread filtering per thread file
+// Disable/Enable cheat

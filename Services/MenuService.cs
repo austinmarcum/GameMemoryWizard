@@ -1,5 +1,8 @@
-﻿using System;
+﻿using GameMemoryWizard.Models;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Threading;
 
 namespace GameMemoryWizard.Services {
@@ -10,22 +13,44 @@ namespace GameMemoryWizard.Services {
             return Console.ReadLine();
         }
 
+        public static int RetrieveNumberResponse(string command) {
+            int retryCount = 0;
+            var maxRetries = 20;
+
+            while (retryCount < maxRetries) {
+                try {
+                    Console.WriteLine("\r\n" + command);
+                    string response = Console.ReadLine();
+                    return Convert.ToInt32(response);
+                } catch (Exception) {
+                    retryCount++;
+                    Console.WriteLine("Response Must be a number, please try again\r\n");
+                }
+            }
+            Console.WriteLine("Response could not be determined. Defaulting to Zero.\r\n");
+            return 0;
+        }
+
         public static void DisplayMenu() {
             string welcomeMessage = "Welcome to the Game Memory Wizard (Reader).\r\n";
             Console.WriteLine(welcomeMessage);
             string gameName = RetrieveResponse("What game would you like to cheat in?");
-            string processName = RetrieveProcessName();
+            //string processName = RetrieveProcessName();
+            string processName = "BasicConsole";
             ThreadService.SetProcressName(processName);
             string cheatName = RetrieveResponse("What would you like the first cheat to be called?");
-            string cheatType = RetrieveResponse("What is the cheat type (Lock, Multiplier, IncreaseTo or DecreaseTo)?");
-            string cheatAmount = RetrieveResponse("What is the amount for the cheat?");
+            ThreadService.SetCurrentCheat(cheatName);
+            CheatType cheatType = RetrieveCheatType();
+            int cheatAmount = RetrieveNumberResponse("What is the amount for the cheat?");
+            GameModel gameModel = new GameModel(gameName, processName, new CheatModel(cheatName, cheatType, cheatAmount));
+            ThreadService.SetGameData(JsonSerializer.Serialize(gameModel));
             HandleScanning();
         }
 
         public static void HandleScanning() {
             Console.WriteLine("\r\n");
             Console.WriteLine("To find the memory location, change the value in the game and perform the cooresponding scan.");
-            while (true) {
+            while (!ThreadService.RetrieveHasFoundAddress()) {
                 Console.WriteLine("1. Scan for Increase of value you wish to find (Shift + +)");
                 Console.WriteLine("2. Scan for Decrease of value you wish to find (Shift + -)");
                 Console.WriteLine("3. Scan for Change of value you wish to find (Shift + C)");
@@ -44,7 +69,7 @@ namespace GameMemoryWizard.Services {
                         break;
                     case "4":
                         ThreadService.AddToQueue("Equals");
-                        return;
+                        break;
                     default:
                         Console.WriteLine("Invalid choice");
                         break;
@@ -53,6 +78,22 @@ namespace GameMemoryWizard.Services {
                 Thread.Sleep(250);
                 ThreadService.WaitUntilNotScanning();
             }
+        }
+
+        public static CheatType RetrieveCheatType() {
+            Console.WriteLine("\r\n");
+            Console.WriteLine("What is the cheat type?");
+            Console.WriteLine("1. Lock");
+            Console.WriteLine("2. Multiplier");
+            Console.WriteLine("3. Increase To");
+            Console.WriteLine("4. Decrease To");
+            string reponse = Console.ReadLine();
+            if (reponse == "1") { return CheatType.Lock; }
+            if (reponse == "2") { return CheatType.Multiplier; }
+            if (reponse == "3") { return CheatType.IncreaseTo; }
+            if (reponse == "4") { return CheatType.DecreaseTo; }
+            Console.WriteLine("Unknown Choice... Defaulting to Lock");
+            return CheatType.Lock;
         }
 
         public static string RetrieveProcessName() {
