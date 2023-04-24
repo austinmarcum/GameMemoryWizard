@@ -39,12 +39,12 @@ namespace GameMemoryWizard.Services {
             string gameName = RetrieveGame();
             //string processName = RetrieveProcessName();
             string processName = "BasicConsole";
-            ThreadService.SetProcressName(processName);
             string cheatName = RetrieveResponse("What would you like the cheat to be called?");
             ThreadService.SetCurrentCheat(cheatName);
             CheatType cheatType = RetrieveCheatType();
             int cheatAmount = RetrieveNumberResponse("What is the amount for the cheat?", 0);
-            CheatModel cheatModel = new CheatModel(cheatName, cheatType, cheatAmount);
+            int[] rangeOfStartingScan = RetrieveRangeOfInitialScan();
+            CheatModel cheatModel = new CheatModel(cheatName, cheatType, cheatAmount, rangeOfStartingScan);
             if (FileService.DoesGameExist(gameName)) {
                 GameModel gameModel = FileService.DeserializeObjectFromFile<GameModel>(gameName + ".json", FileService.GAME_FOLDER);
                 gameModel.Cheats.Add(cheatModel);
@@ -104,6 +104,19 @@ namespace GameMemoryWizard.Services {
             if (reponse == "4") { return CheatType.DecreaseTo; }
             Console.WriteLine("Unknown Choice... Defaulting to Lock");
             return CheatType.Lock;
+        }
+
+        private static int[] RetrieveRangeOfInitialScan() {
+            Console.WriteLine("\r\n");
+            Console.WriteLine();
+            bool doesKnowValue = RetrieveResponse("Do you know the current value that you are trying to change (Y/N)?").ToLower() == "y";
+            if (doesKnowValue) {
+                int value = RetrieveNumberResponse("Enter the current value:", 0);
+                return new int[] { value, value };
+            }
+            int lowestNumber = RetrieveNumberResponse("What is the lowest value of this variable:", -100);
+            int highestNumber = RetrieveNumberResponse("What is the highest value of this variable:", 1000);
+            return new int[] { lowestNumber, highestNumber };
         }
 
         public static string RetrieveGame() {

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace GameMemoryWizard.Models {
+﻿namespace GameMemoryWizard.Models {
     public enum CheatType {
        Lock,
        Multiplier,
@@ -19,12 +13,14 @@ namespace GameMemoryWizard.Models {
         public string RegionInfo { get; set; }
         public CheatType CheatType { get; set; }
         public int Amount { get; set; }
+        public int[] RangeForCheat { get; set; }
 
-        public CheatModel(string cheatName, CheatType cheatType, int amount) {
+        public CheatModel(string cheatName, CheatType cheatType, int amount, int[] rangeForCheat) {
             CheatName = cheatName;
             CheatType = cheatType;
             Amount = amount;
             IsEnabled = true;
+            RangeForCheat = rangeForCheat;
         }
 
         public CheatModel() { }

@@ -4,7 +4,6 @@ using System.Threading;
 namespace GameMemoryWizard {
     static class ThreadService {
         private static ConcurrentQueue<string> queue = new ConcurrentQueue<string>();
-        private static string processName;
         private static bool isCurrentlyScanning;
         private static bool hasFoundAddress;
         private static string gameData;
@@ -24,19 +23,11 @@ namespace GameMemoryWizard {
             return scanType;
         }
 
-        public static void SetProcressName(string gameProcessName) {
-            processName = gameProcessName;
-        }
-
-        public static string RetrieveProcessName() {
-            return processName;
-        }
-
-        public static string WaitForProcessName() {
-            while (processName == null) {
+        public static string WaitForGameDataFromUi() {
+            while (gameData == null) {
                 Thread.Sleep(1000);
             }
-            return processName;
+            return gameData;
         }
 
         public static void SetIsCurrentlyScanning(bool isScanning) {

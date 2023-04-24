@@ -10,9 +10,10 @@ namespace GameMemoryWizard {
     internal class Program
     {
         // Todo -> Handle Initial Scan
-        // Todo -> Add a second cheat
         // Todo -> Checksum of app
-        // Todo -> Play Audio File when you find it #3
+        // Todo -> Play Audio File when you find it
+        // Todo -> Read Line in UI thread is still waiting even after cheat is saved
+        // Todo -> Test Cheat before saving (will need writer portion first)
         static void Main(string[] args)
         {
             try {
@@ -21,9 +22,11 @@ namespace GameMemoryWizard {
                 });
                 menuThread.Start();
 
-                ThreadService.WaitForProcessName();
+                ThreadService.WaitForGameDataFromUi();
 
-                List<ProcessMemory> previousScan = MemoryReadService.SearchAllMemoryOfProcess(ThreadService.RetrieveProcessName(), 80, 100);
+                GameModel gameModel = JsonSerializer.Deserialize<GameModel>(ThreadService.RetrieveGameData());
+                CheatModel cheat = gameModel.RetrieveCheat(ThreadService.RetrieveCurrentCheat());
+                List<ProcessMemory> previousScan = MemoryReadService.SearchAllMemoryOfProcess(gameModel.ProcessName, cheat.RangeForCheat[0], cheat.RangeForCheat[1]);
 
                 Thread keyboardShortcutThread = new Thread(() => {
                     KeyboardShortcutService.SetKeyboardShortcut();
@@ -36,12 +39,9 @@ namespace GameMemoryWizard {
                     if (ThreadService.RetrieveQueueDepth() > 0) {
                         ThreadService.SetIsCurrentlyScanning(true);
                         string scanType = ThreadService.Dequeue();
-                        var fitleredProcesses = MemoryReadService.FilterResults(previousScan, ThreadService.RetrieveProcessName(), scanType);
+                        var fitleredProcesses = MemoryReadService.FilterResults(previousScan, gameModel.ProcessName, scanType);
                         if (fitleredProcesses.Count == 1 && fitleredProcesses.First().CurrentCountOfMemoryLocations == 1) {
                             ThreadService.SetHasFoundAddress(true);
-
-                            GameModel gameModel = JsonSerializer.Deserialize<GameModel>(ThreadService.RetrieveGameData());
-                            CheatModel cheat = gameModel.RetrieveCheat(ThreadService.RetrieveCurrentCheat());
                             long offset = fitleredProcesses.First().CalculateOffsetForSingleMemoryLocation();
                             cheat.OffsetInMemory = offset;
                             cheat.RegionInfo = fitleredProcesses.First().RetrieveRegionInfo();
@@ -68,3 +68,4 @@ namespace GameMemoryWizard {
 // Potential Todos
 // Thread filtering per thread file
 // Disable/Enable cheat
+// Amount of cheat is currently only an int but it should also handle doubles
