@@ -61,5 +61,13 @@ namespace GameMemoryWizard.Services {
             }
             return gameList;
         }
+
+        private static bool DoesFileExist(string fileName, string folderName) {
+            return File.Exists(folderName + fileName);
+        }
+
+        public static bool DoesGameExist(string gameName) {
+            return DoesFileExist(gameName + ".json", GAME_FOLDER);
+        }
     }
 }

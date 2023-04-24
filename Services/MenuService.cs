@@ -40,12 +40,20 @@ namespace GameMemoryWizard.Services {
             //string processName = RetrieveProcessName();
             string processName = "BasicConsole";
             ThreadService.SetProcressName(processName);
-            string cheatName = RetrieveResponse("What would you like the first cheat to be called?");
+            string cheatName = RetrieveResponse("What would you like the cheat to be called?");
             ThreadService.SetCurrentCheat(cheatName);
             CheatType cheatType = RetrieveCheatType();
             int cheatAmount = RetrieveNumberResponse("What is the amount for the cheat?", 0);
-            GameModel gameModel = new GameModel(gameName, processName, new CheatModel(cheatName, cheatType, cheatAmount));
-            ThreadService.SetGameData(JsonSerializer.Serialize(gameModel));
+            CheatModel cheatModel = new CheatModel(cheatName, cheatType, cheatAmount);
+            if (FileService.DoesGameExist(gameName)) {
+                GameModel gameModel = FileService.DeserializeObjectFromFile<GameModel>(gameName + ".json", FileService.GAME_FOLDER);
+                gameModel.Cheats.Add(cheatModel);
+                ThreadService.SetGameData(JsonSerializer.Serialize(gameModel));
+            } else {
+                GameModel gameModel = new GameModel(gameName, processName, cheatModel);
+                ThreadService.SetGameData(JsonSerializer.Serialize(gameModel));
+            }
+           
             HandleScanning();
         }
 
