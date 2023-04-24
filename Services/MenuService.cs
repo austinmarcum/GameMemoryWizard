@@ -13,13 +13,15 @@ namespace GameMemoryWizard.Services {
             return Console.ReadLine();
         }
 
-        public static int RetrieveNumberResponse(string command) {
+        public static int RetrieveNumberResponse(string command, int defaultNumber) {
             int retryCount = 0;
             var maxRetries = 20;
 
             while (retryCount < maxRetries) {
                 try {
-                    Console.WriteLine("\r\n" + command);
+                    if (command != "") {
+                        Console.WriteLine("\r\n" + command);
+                    }
                     string response = Console.ReadLine();
                     return Convert.ToInt32(response);
                 } catch (Exception) {
@@ -27,21 +29,21 @@ namespace GameMemoryWizard.Services {
                     Console.WriteLine("Response Must be a number, please try again\r\n");
                 }
             }
-            Console.WriteLine("Response could not be determined. Defaulting to Zero.\r\n");
-            return 0;
+            Console.WriteLine($"Response could not be determined. Defaulting to {defaultNumber}.\r\n");
+            return defaultNumber;
         }
 
         public static void DisplayMenu() {
             string welcomeMessage = "Welcome to the Game Memory Wizard (Reader).\r\n";
             Console.WriteLine(welcomeMessage);
-            string gameName = RetrieveResponse("What game would you like to cheat in?");
+            string gameName = RetrieveGame();
             //string processName = RetrieveProcessName();
             string processName = "BasicConsole";
             ThreadService.SetProcressName(processName);
             string cheatName = RetrieveResponse("What would you like the first cheat to be called?");
             ThreadService.SetCurrentCheat(cheatName);
             CheatType cheatType = RetrieveCheatType();
-            int cheatAmount = RetrieveNumberResponse("What is the amount for the cheat?");
+            int cheatAmount = RetrieveNumberResponse("What is the amount for the cheat?", 0);
             GameModel gameModel = new GameModel(gameName, processName, new CheatModel(cheatName, cheatType, cheatAmount));
             ThreadService.SetGameData(JsonSerializer.Serialize(gameModel));
             HandleScanning();
@@ -94,6 +96,22 @@ namespace GameMemoryWizard.Services {
             if (reponse == "4") { return CheatType.DecreaseTo; }
             Console.WriteLine("Unknown Choice... Defaulting to Lock");
             return CheatType.Lock;
+        }
+
+        public static string RetrieveGame() {
+            Console.WriteLine("\r\n");
+            Console.WriteLine("What game would you like to cheat in?");
+            List<string> games = FileService.RetrieveGameList();
+            int index = 1;
+            foreach (string game in games) {
+                Console.WriteLine($"{index++}. {game}");
+            }
+            Console.WriteLine($"{index}. New Game");
+            int gameIndex = RetrieveNumberResponse("", 1);
+            if (gameIndex == index) {
+                return RetrieveResponse("Please enter the name of the game:");
+            }
+            return games[gameIndex -1];
         }
 
         public static string RetrieveProcessName() {

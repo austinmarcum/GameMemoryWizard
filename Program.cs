@@ -45,7 +45,7 @@ namespace GameMemoryWizard {
                             long offset = fitleredProcesses.First().CalculateOffsetForSingleMemoryLocation();
                             cheat.OffsetInMemory = offset;
                             cheat.RegionInfo = fitleredProcesses.First().RetrieveRegionInfo();
-                            FileService.SerializeObjectToFile(gameModel, $"{gameModel.GameName}.json");
+                            FileService.SerializeObjectToFile(gameModel, $"{gameModel.GameName}.json", FileService.GAME_FOLDER);
                             Console.WriteLine($"Offset: {offset}");
                         } else {
                             previousScan = fitleredProcesses;

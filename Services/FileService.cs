@@ -2,17 +2,18 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace GameMemoryWizard.Services {
 
     public class FileService {
 
-        private static string DEFAULT_FOLDER = "C:\\temp\\Memory\\";
+        public static readonly string GAME_FOLDER = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + "\\Games\\";
+        public static readonly string DEFAULT_MEMORY_FOLDER = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + "\\TempMemoryStorage\\";
 
-        public static void SerializeObjectToFile(object obj, string fileName) {
+        public static void SerializeObjectToFile(object obj, string fileName, string folderName) {
+            EnsureDirectoryExists(folderName);
             string jsonString = JsonSerializer.Serialize(obj);
-            File.WriteAllText(DEFAULT_FOLDER + fileName, jsonString);
+            File.WriteAllText(folderName + fileName, jsonString);
         }
 
         public static void StoreMemoryAsJson(Dictionary<IntPtr, int> memory, string fileName) {
@@ -21,17 +22,18 @@ namespace GameMemoryWizard.Services {
                 int key = entry.Key.ToInt32();
                 memoryLocationAsIntMemory[key] = entry.Value;
             }
-            SerializeObjectToFile(memoryLocationAsIntMemory, fileName);
+            SerializeObjectToFile(memoryLocationAsIntMemory, fileName, DEFAULT_MEMORY_FOLDER);
         }
 
-        public static T DeserializeObjectFromFile<T>(string fileName) {
-            string jsonString = File.ReadAllText(DEFAULT_FOLDER + fileName);
+        public static T DeserializeObjectFromFile<T>(string fileName, string folderName) {
+            EnsureDirectoryExists(folderName);
+            string jsonString = File.ReadAllText(folderName + fileName);
             T obj = JsonSerializer.Deserialize<T>(jsonString);
             return obj;
         }
 
         public static Dictionary<IntPtr, int> RetrieveMemoryFromJson(string fileName) {
-            Dictionary<int, int> memoryLocationAsIntMemory = DeserializeObjectFromFile<Dictionary<int, int>>(fileName);
+            Dictionary<int, int> memoryLocationAsIntMemory = DeserializeObjectFromFile<Dictionary<int, int>>(fileName, DEFAULT_MEMORY_FOLDER);
             Dictionary<IntPtr, int> memory = new Dictionary<IntPtr, int>();
             foreach (KeyValuePair<int, int> entry in memoryLocationAsIntMemory) {
                 IntPtr key = new IntPtr(entry.Key);
@@ -40,14 +42,24 @@ namespace GameMemoryWizard.Services {
             return memory;
         }
 
-        public static void DeleteFile(string fileName) {
-            File.Delete(DEFAULT_FOLDER + fileName);
+        public static void DeleteFile(string fileName, string folderName) {
+            File.Delete(folderName + fileName);
         }
 
         private static void EnsureDirectoryExists(string directory) {
             if (!Directory.Exists(directory)) {
                 Directory.CreateDirectory(directory);
             }
+        }
+
+        public static List<string> RetrieveGameList() {
+            List<string> gameList = new List<string>();
+            DirectoryInfo gameDirectory = new DirectoryInfo(GAME_FOLDER); 
+            FileInfo[] files = gameDirectory.GetFiles("*.json");
+            foreach (FileInfo file in files) {
+                gameList.Add(file.Name.Replace(".json", ""));
+            }
+            return gameList;
         }
     }
 }

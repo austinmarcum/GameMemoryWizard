@@ -67,7 +67,7 @@ namespace GameMemoryWizard.Models {
         }
 
         public void RemoveFile() {
-            FileService.DeleteFile(FileLocationOfMemory);
+            FileService.DeleteFile(FileLocationOfMemory, FileService.DEFAULT_MEMORY_FOLDER);
             DoesMemoryFileExist = false;
             CurrentCountOfMemoryLocations = 0;
         }
