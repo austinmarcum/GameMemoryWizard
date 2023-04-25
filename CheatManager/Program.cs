@@ -24,7 +24,7 @@ namespace CheatManager {
 
                 GameModel gameModel = JsonSerializer.Deserialize<GameModel>(ThreadService.RetrieveGameData());
                 CheatModel cheat = gameModel.RetrieveCheat(ThreadService.RetrieveCurrentCheat());
-                List<ProcessMemory> previousScan = MemoryReadService.SearchAllMemoryOfProcess(gameModel.ProcessName, cheat.RangeForCheat[0], cheat.RangeForCheat[1]);
+                List<ProcessMemory> previousScan = MemoryService.SearchAllMemoryOfProcess(gameModel.ProcessName, cheat.RangeForCheat[0], cheat.RangeForCheat[1]);
 
                 Thread keyboardShortcutThread = new Thread(() => {
                     KeyboardShortcutService.SetKeyboardShortcut();
@@ -37,7 +37,7 @@ namespace CheatManager {
                     if (ThreadService.RetrieveQueueDepth() > 0) {
                         ThreadService.SetIsCurrentlyScanning(true);
                         string scanType = ThreadService.Dequeue();
-                        var fitleredProcesses = MemoryReadService.FilterResults(previousScan, gameModel.ProcessName, scanType);
+                        var fitleredProcesses = MemoryService.FilterResults(previousScan, gameModel.ProcessName, scanType);
                         if (fitleredProcesses.Count == 1 && fitleredProcesses.First().CurrentCountOfMemoryLocations == 1) {
                             ThreadService.SetHasFoundAddress(true);
                             long offset = fitleredProcesses.First().CalculateOffsetForSingleMemoryLocation();

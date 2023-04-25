@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace CheatManager {
-    class MemoryReadService {
+namespace CheatManager.Services {
+    public class MemoryService {
 
         public static List<ProcessMemory> SearchAllMemoryOfProcess(string processName, int minValue, int maxValue) {
             int regionNumber = 0;
@@ -102,6 +102,35 @@ namespace CheatManager {
             return currentScan;
         }
 
+        public static List<ProcessMemory> RetrieveMemoryRegionsForProcess(Process process) {
+            List<ProcessMemory> memoryRegions = new List<ProcessMemory>();
+            IntPtr processHandle = process.Handle;
+            if (processHandle == IntPtr.Zero) {
+                return memoryRegions;
+            }
+
+            var startAddress = IntPtr.Zero;
+            UIntPtr endAddress = UIntPtr.Zero;
+            var memoryInfo = new MEMORY_BASIC_INFORMATION();
+            while (VirtualQueryEx(processHandle, endAddress, out memoryInfo, (uint)Marshal.SizeOf(memoryInfo)) > 0) {
+                startAddress = memoryInfo.BaseAddress;
+                try {
+                    new UIntPtr(Convert.ToUInt64(startAddress.ToInt64() + memoryInfo.RegionSize.ToInt64()));
+                } catch (Exception) {
+                    return memoryRegions;
+                }
+                endAddress = new UIntPtr(Convert.ToUInt64(startAddress.ToInt64() + memoryInfo.RegionSize.ToInt64()));
+                memoryRegions.Add(new ProcessMemory(memoryInfo));
+            }
+            return memoryRegions;
+        }
+
+        public static void WriteMemory(int value, IntPtr processHandle, IntPtr address) {
+            byte[] buffer = BitConverter.GetBytes(value);
+            IntPtr bytesWritten;
+            WriteProcessMemory(processHandle, address, buffer, buffer.Length, out bytesWritten);
+        }
+
         private static string RetrieveFilterScanResults(List<ProcessMemory> previousScan, List<ProcessMemory> currentScan) {
             int totalNumberOfFilteredMemoryLocationsInPreviousScan = 0;
             int totalNumberOfFilteredMemoryLocationsInCurrentScan = 0;
@@ -158,5 +187,8 @@ namespace CheatManager {
 
         [DllImport("kernel32.dll")]
         private static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, int nSize, out IntPtr lpNumberOfBytesRead);
+
+        [DllImport("kernel32.dll")]
+        static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, int nSize, out IntPtr lpNumberOfBytesWritten);
     }
 }

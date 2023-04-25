@@ -2,10 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static CheatManager.MemoryReadService;
+using static CheatManager.Services.MemoryService;
 
 namespace CheatManager.Models {
-    class ProcessMemory {
+    public class ProcessMemory {
         public IntPtr BaseAddress { get; set; }
         public IntPtr AllocationBase { get; set; }
         public AllocationProtectEnum AllocationProtect { get; set; }
@@ -41,6 +41,19 @@ namespace CheatManager.Models {
             Protect = previousProcessMemory.Protect;
             Type = previousProcessMemory.Type;
             FileLocationOfMemory = previousProcessMemory.FileLocationOfMemory;
+        }
+
+        public ProcessMemory(MEMORY_BASIC_INFORMATION memoryStruct) {
+            BaseAddress = memoryStruct.BaseAddress;
+            AllocationBase = memoryStruct.AllocationBase;
+            AllocationProtect = memoryStruct.AllocationProtect;
+            RegionSize = memoryStruct.RegionSize;
+            State = memoryStruct.State;
+            Protect = memoryStruct.Protect;
+            Type = memoryStruct.Type;
+            FileLocationOfMemory = null;
+            DoesMemoryFileExist = false;
+            CurrentCountOfMemoryLocations = 0;
         }
 
         public void SetProcessMemory(Dictionary<IntPtr, int> memoryOfProcess) {
