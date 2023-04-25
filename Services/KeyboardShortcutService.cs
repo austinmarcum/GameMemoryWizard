@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace GameMemoryWizard {
+namespace CheatManager {
     class KeyboardShortcutService {
 
         private const int WH_KEYBOARD_LL = 13;

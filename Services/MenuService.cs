@@ -1,11 +1,11 @@
-﻿using GameMemoryWizard.Models;
+﻿using CheatManager.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Threading;
 
-namespace GameMemoryWizard.Services {
+namespace CheatManager.Services {
     public class MenuService {
 
         public static string RetrieveResponse(string command) {

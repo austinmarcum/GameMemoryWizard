@@ -1,10 +1,10 @@
-﻿using GameMemoryWizard.Services;
+﻿using CheatManager.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static GameMemoryWizard.MemoryReadService;
+using static CheatManager.MemoryReadService;
 
-namespace GameMemoryWizard.Models {
+namespace CheatManager.Models {
     class ProcessMemory {
         public IntPtr BaseAddress { get; set; }
         public IntPtr AllocationBase { get; set; }

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Threading;
 
-namespace GameMemoryWizard {
+namespace CheatManager {
     static class ThreadService {
         private static ConcurrentQueue<string> queue = new ConcurrentQueue<string>();
         private static bool isCurrentlyScanning;

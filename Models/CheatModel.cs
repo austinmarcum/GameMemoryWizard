@@ -1,4 +1,4 @@
-﻿namespace GameMemoryWizard.Models {
+﻿namespace CheatManager.Models {
     public enum CheatType {
        Lock,
        Multiplier,

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
-namespace GameMemoryWizard.Services {
+namespace CheatManager.Services {
 
     public class FileService {
 

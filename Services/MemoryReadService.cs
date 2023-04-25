@@ -1,10 +1,10 @@
-﻿using GameMemoryWizard.Models;
+﻿using CheatManager.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace GameMemoryWizard {
+namespace CheatManager {
     class MemoryReadService {
 
         public static List<ProcessMemory> SearchAllMemoryOfProcess(string processName, int minValue, int maxValue) {

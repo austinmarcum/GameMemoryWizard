@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace GameMemoryWizard.Models {
+namespace CheatManager.Models {
     public class GameModel {
         public string GameName { get; set; }
         public string ProcessName { get; set; }

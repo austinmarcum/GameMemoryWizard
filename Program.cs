@@ -1,12 +1,12 @@
-﻿using GameMemoryWizard.Models;
-using GameMemoryWizard.Services;
+﻿using CheatManager.Models;
+using CheatManager.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
 
-namespace GameMemoryWizard {
+namespace CheatManager {
     internal class Program
     {
         // Todo -> Checksum of app
