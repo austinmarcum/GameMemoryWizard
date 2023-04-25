@@ -9,7 +9,6 @@ using System.Threading;
 namespace GameMemoryWizard {
     internal class Program
     {
-        // Todo -> Handle Initial Scan
         // Todo -> Checksum of app
         // Todo -> Play Audio File when you find it
         // Todo -> Read Line in UI thread is still waiting even after cheat is saved
