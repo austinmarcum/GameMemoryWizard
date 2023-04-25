@@ -6,15 +6,14 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 
+
 namespace CheatManager {
-    internal class Program
-    {
+    class Program {
         // Todo -> Checksum of app
         // Todo -> Play Audio File when you find it
         // Todo -> Read Line in UI thread is still waiting even after cheat is saved
         // Todo -> Test Cheat before saving (will need writer portion first)
-        static void Main(string[] args)
-        {
+        static void Main(string[] args) {
             try {
                 Thread menuThread = new Thread(() => {
                     MenuService.DisplayMenu();
@@ -63,8 +62,3 @@ namespace CheatManager {
         }
     }
 }
-
-// Potential Todos
-// Thread filtering per thread file
-// Disable/Enable cheat
-// Amount of cheat is currently only an int but it should also handle doubles

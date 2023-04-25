@@ -53,6 +53,7 @@ namespace CheatManager.Services {
         }
 
         public static List<string> RetrieveGameList() {
+            EnsureDirectoryExists(GAME_FOLDER);
             List<string> gameList = new List<string>();
             DirectoryInfo gameDirectory = new DirectoryInfo(GAME_FOLDER); 
             FileInfo[] files = gameDirectory.GetFiles("*.json");
