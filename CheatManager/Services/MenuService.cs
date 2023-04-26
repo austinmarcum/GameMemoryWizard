@@ -37,8 +37,7 @@ namespace CheatManager.Services {
             string welcomeMessage = "Welcome to the Game Memory Wizard (Reader).\r\n";
             Console.WriteLine(welcomeMessage);
             string gameName = RetrieveGame();
-            //string processName = RetrieveProcessName();
-            string processName = "BasicConsole";
+            string processName = RetrieveProcessName();
             string cheatName = RetrieveResponse("What would you like the cheat to be called?");
             ThreadService.SetCurrentCheat(cheatName);
             CheatType cheatType = RetrieveCheatType();
