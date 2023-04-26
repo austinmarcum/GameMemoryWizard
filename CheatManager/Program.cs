@@ -27,7 +27,7 @@ namespace CheatManager {
                 List<ProcessMemory> previousScan = MemoryService.SearchAllMemoryOfProcess(gameModel.ProcessName, cheat.RangeForCheat[0], cheat.RangeForCheat[1]);
 
                 Thread keyboardShortcutThread = new Thread(() => {
-                    KeyboardShortcutService.SetKeyboardShortcut();
+                    KeyboardShortcutService.SetKeyboardShortcutForManager();
                 });
                 keyboardShortcutThread.Start();
 
@@ -56,7 +56,7 @@ namespace CheatManager {
                 Console.WriteLine($"Error: {e.Message}");
                 Thread.Sleep(5000);
             } finally {
-                KeyboardShortcutService.RemoveKeyboardShortcut();
+                KeyboardShortcutService.RemoveKeyboardShortcutForManager();
                 Console.WriteLine("KeyBoard Shorcut are no longer listening");
             }
         }

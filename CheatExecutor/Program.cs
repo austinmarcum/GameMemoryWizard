@@ -1,4 +1,5 @@
-﻿using CheatManager.Models;
+﻿using CheatManager;
+using CheatManager.Models;
 using CheatManager.Services;
 using System;
 using System.Collections.Generic;
@@ -16,16 +17,78 @@ namespace CheatExecutor {
                 Process gameProcess = WaitForProcess(gameModel.ProcessName);
                 IntPtr processHandle = gameProcess.Handle;
                 Dictionary<CheatModel, IntPtr> memoryLocationPerCheat = RetrieveMemoryLocationPerCheat(gameProcess, gameModel);
+
+                Thread keyboardShortcutThread = new Thread(() => {
+                    KeyboardShortcutService.SetKeyboardShortcutForExecutor();
+                });
+                keyboardShortcutThread.Start();
+
                 while (IsProcessRunning(gameModel.ProcessName)) {
-                    foreach (KeyValuePair<CheatModel, IntPtr> cheat in memoryLocationPerCheat) {
-                        MemoryService.WriteMemory(cheat.Key.Amount, processHandle, cheat.Value);
+                    foreach (KeyValuePair<CheatModel, IntPtr> cheatEntry in memoryLocationPerCheat) {
+                        CheatModel cheat = cheatEntry.Key;
+                        IntPtr locationInMemory = cheatEntry.Value;
+                        if (cheat.CheatType == CheatType.Lock) {
+                            MemoryService.WriteMemory(cheat.Amount, processHandle, locationInMemory);
+                        }
+                        if (cheat.CheatType == CheatType.Multiplier) {
+                            HandleMultipierCheat(cheat, locationInMemory, processHandle);
+                        }
                     }
-                    Thread.Sleep(1000);
+                    string userRequestedCheat = ThreadService.RetrieveUserRequestedCheat();
+                    bool wasUserRequested = false;
+                    if (userRequestedCheat == "Increase" || userRequestedCheat == "Decrease") {
+                        foreach (KeyValuePair<CheatModel, IntPtr> cheatEntry in memoryLocationPerCheat) {
+                            CheatModel cheat = cheatEntry.Key;
+                            IntPtr locationInMemory = cheatEntry.Value;
+                            if (cheat.CheatType == CheatType.IncreaseTo && userRequestedCheat == "Increase") {
+                                wasUserRequested = true;
+                                int currentValue = MemoryService.ReadMemory(processHandle, locationInMemory);
+                                int increasedValue = currentValue + cheat.Amount;
+                                MemoryService.WriteMemory(increasedValue, processHandle, locationInMemory);
+                            }
+                            if (cheat.CheatType == CheatType.DecreaseTo && userRequestedCheat == "Decrease") {
+                                wasUserRequested = true;
+                                int currentValue = MemoryService.ReadMemory(processHandle, locationInMemory);
+                                int increasedValue = currentValue - cheat.Amount;
+                                MemoryService.WriteMemory(increasedValue, processHandle, locationInMemory);
+                            }
+                        }
+                        ThreadService.SetUserRequestedCheat(null);
+                    }
+                    if (!wasUserRequested) {
+                        Thread.Sleep(1000);
+                    }
                 }
             } catch (Exception e) {
                 Console.WriteLine($"Error: {e.Message}");
                 Thread.Sleep(5000);
+            } finally {
+                KeyboardShortcutService.RemoveKeyboardShortcutForExecutor();
+                Console.WriteLine("KeyBoard Shorcut are no longer listening");
             }
+        }
+
+        private static void HandleMultipierCheat(CheatModel cheat, IntPtr locationInMemory, IntPtr processHandle) {
+            int currentValue = MemoryService.ReadMemory(processHandle, locationInMemory);
+            if (CanBeMultiplied(currentValue, cheat)) {
+                cheat.UnmodifiedValue = currentValue;
+                cheat.ModifiedValue = currentValue * cheat.Amount;
+                if (cheat.FirstModifiedValue == 0) {
+                    cheat.FirstModifiedValue = cheat.ModifiedValue;
+                }
+                MemoryService.WriteMemory(cheat.ModifiedValue, processHandle, locationInMemory);
+            }
+        }
+
+        private static bool CanBeMultiplied(int currentValue, CheatModel cheat) {
+            if (cheat.UnmodifiedValue == 0) { return true; }
+            if (cheat.MultiplierType == MultiplierType.FixedRange && (currentValue * cheat.Amount) < cheat.FirstModifiedValue) {
+                return true;
+            }
+            if (cheat.MultiplierType == MultiplierType.SporadicValues && currentValue != cheat.ModifiedValue && currentValue != cheat.UnmodifiedValue) {
+                return true;
+            }
+            return false;
         }
 
         private static ProcessMemory FindRegionOfMemoryForCheat(List<ProcessMemory> memoryRegions, CheatModel cheat) {

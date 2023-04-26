@@ -1,13 +1,14 @@
 ﻿using System.Collections.Concurrent;
 using System.Threading;
 
-namespace CheatManager {
-    static class ThreadService {
+namespace CheatManager.Services {
+    public static class ThreadService {
         private static ConcurrentQueue<string> queue = new ConcurrentQueue<string>();
         private static bool isCurrentlyScanning;
         private static bool hasFoundAddress;
         private static string gameData;
         private static string currentCheat;
+        private static string userRequestedCheat;
 
         public static void AddToQueue(string scanType) {
             queue.Enqueue(scanType);
@@ -63,6 +64,14 @@ namespace CheatManager {
 
         public static string RetrieveCurrentCheat() {
             return currentCheat;
+        }
+
+        public static void SetUserRequestedCheat(string cheatType) {
+            userRequestedCheat = cheatType;
+        }
+
+        public static string RetrieveUserRequestedCheat() {
+            return userRequestedCheat;
         }
     }
 }

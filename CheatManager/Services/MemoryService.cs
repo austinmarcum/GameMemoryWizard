@@ -131,6 +131,13 @@ namespace CheatManager.Services {
             WriteProcessMemory(processHandle, address, buffer, buffer.Length, out bytesWritten);
         }
 
+        public static int ReadMemory(IntPtr processHandle, IntPtr address) {
+            byte[] buffer = new byte[sizeof(int)];
+            ReadProcessMemory(processHandle, address, buffer, buffer.Length, out var bytesRead);
+            int value = BitConverter.ToInt32(buffer, 0);
+            return value;
+        }
+
         private static string RetrieveFilterScanResults(List<ProcessMemory> previousScan, List<ProcessMemory> currentScan) {
             int totalNumberOfFilteredMemoryLocationsInPreviousScan = 0;
             int totalNumberOfFilteredMemoryLocationsInCurrentScan = 0;
