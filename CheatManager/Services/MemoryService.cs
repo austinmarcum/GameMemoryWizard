@@ -8,41 +8,49 @@ namespace CheatManager.Services {
     public class MemoryService {
 
         public static List<ProcessMemory> SearchAllMemoryOfProcess(string processName, int minValue, int maxValue) {
+            var timer = new Stopwatch();
+            timer.Start();
             int regionNumber = 0;
             List<ProcessMemory> listOfProcessMemory = new List<ProcessMemory>();
-
             var process = Process.GetProcessesByName(processName)[0];
             var processHandle = process.Handle;
             if (processHandle == IntPtr.Zero) {
                 return listOfProcessMemory;
             }
-                
+
             var startAddress = IntPtr.Zero;
             UIntPtr endAddress = UIntPtr.Zero;
             var memoryInfo = new MEMORY_BASIC_INFORMATION();
+            var chunkSize = 50 * 1024 * 1024; // 50MBs
             while (VirtualQueryEx(processHandle, endAddress, out memoryInfo, (uint)Marshal.SizeOf(memoryInfo)) > 0) {
                 var memory = new Dictionary<IntPtr, int>();
                 startAddress = memoryInfo.BaseAddress;
                 try {
                     new UIntPtr(Convert.ToUInt64(startAddress.ToInt64() + memoryInfo.RegionSize.ToInt64()));
                 } catch (Exception) {
+                    Console.WriteLine("Total Time for Scan: " + timer.ElapsedMilliseconds);
                     return listOfProcessMemory;
                 }
 
                 endAddress = new UIntPtr(Convert.ToUInt64(startAddress.ToInt64() + memoryInfo.RegionSize.ToInt64()));
 
                 if (memoryInfo.State.ToString() != AllocationProtectEnum.PAGE_GUARD.ToString()) {
-                    var buffer = new byte[memoryInfo.RegionSize.ToInt64()];
-                    if (ReadProcessMemory(processHandle, startAddress, buffer, buffer.Length, out var bytesRead)) {
-                        for (var i = 0; i < bytesRead.ToInt64(); i += sizeof(int)) {
-                            var address = startAddress + i;
-                            var bufferValue = BitConverter.ToInt32(buffer, (int)i);
-                            if (bufferValue >= minValue && bufferValue <= maxValue) {
-                                memory[address] = bufferValue;
+                    var remainingBytes = memoryInfo.RegionSize.ToInt64();
+                    while (remainingBytes > 0) {
+                        var bufferSize = Math.Min(remainingBytes, chunkSize);
+                        var buffer = new byte[bufferSize];
+                        if (ReadProcessMemory(processHandle, startAddress, buffer, Convert.ToInt32(bufferSize), out var bytesRead)) {
+                            for (var i = 0; i < bytesRead.ToInt64(); i += sizeof(int)) {
+                                var address = startAddress + i;
+                                var bufferValue = BitConverter.ToInt32(buffer, (int)i);
+                                if (bufferValue >= minValue && bufferValue <= maxValue) {
+                                    memory[address] = bufferValue;
+                                }
                             }
                         }
+                        startAddress += Convert.ToInt32(bufferSize);
+                        remainingBytes -= bufferSize;
                     }
-                    
                 }
 
                 if (memory.Count != 0) {
@@ -51,6 +59,7 @@ namespace CheatManager.Services {
                 }
             }
 
+            Console.WriteLine("Total Time for Scan: "+ timer.ElapsedMilliseconds);
             return listOfProcessMemory;
         }
 

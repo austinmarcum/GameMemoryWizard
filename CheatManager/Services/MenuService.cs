@@ -106,8 +106,6 @@ namespace CheatManager.Services {
         }
 
         private static int[] RetrieveRangeOfInitialScan() {
-            Console.WriteLine("\r\n");
-            Console.WriteLine();
             bool doesKnowValue = RetrieveResponse("Do you know the current value that you are trying to change (Y/N)?").ToLower() == "y";
             if (doesKnowValue) {
                 int value = RetrieveNumberResponse("Enter the current value:", 0);
