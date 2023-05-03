@@ -31,24 +31,11 @@ namespace CheatManager {
                 });
                 keyboardShortcutThread.Start();
 
-                Console.WriteLine("Ready!");
+                Console.WriteLine("Initial Scan Complete");
                 ThreadService.SetHasFoundAddress(false);
                 while (!ThreadService.RetrieveHasFoundAddress()) {
                     if (ThreadService.RetrieveQueueDepth() > 0) {
-                        ThreadService.SetIsCurrentlyScanning(true);
-                        string scanType = ThreadService.Dequeue();
-                        var fitleredProcesses = MemoryService.FilterResults(previousScan, gameModel.ProcessName, scanType);
-                        if (fitleredProcesses.Count == 1 && fitleredProcesses.First().CurrentCountOfMemoryLocations == 1) {
-                            ThreadService.SetHasFoundAddress(true);
-                            long offset = fitleredProcesses.First().CalculateOffsetForSingleMemoryLocation();
-                            cheat.OffsetInMemory = offset;
-                            cheat.RegionInfo = fitleredProcesses.First().RetrieveRegionInfo();
-                            FileService.SerializeObjectToFile(gameModel, $"{gameModel.GameName}.json", FileService.GAME_FOLDER);
-                            Console.WriteLine($"Offset: {offset}");
-                        } else {
-                            previousScan = fitleredProcesses;
-                        }
-                        ThreadService.SetIsCurrentlyScanning(false);
+                        previousScan = FilterMemoryAndSaveCheatIfFound(cheat, gameModel, previousScan);
                     }
                     Thread.Sleep(250);
                 }
@@ -59,6 +46,63 @@ namespace CheatManager {
                 KeyboardShortcutService.RemoveKeyboardShortcutForManager();
                 Console.WriteLine("KeyBoard Shorcut are no longer listening");
             }
+        }
+
+        private static void HandleFindingMemoryLocation(ProcessMemory regionOfMemory, CheatModel cheat, GameModel gameModel) {
+            ThreadService.SetHasFoundAddress(true);
+            long offset = regionOfMemory.CalculateOffsetForSingleMemoryLocation();
+            cheat.OffsetInMemory = offset;
+            cheat.RegionInfo = regionOfMemory.RetrieveRegionInfo();
+            FileService.SerializeObjectToFile(gameModel, $"{gameModel.GameName}.json", FileService.GAME_FOLDER);
+            Console.WriteLine($"Offset: {offset}");
+        }
+
+        private static List<ProcessMemory> FilterMemoryAndSaveCheatIfFound(CheatModel cheat, GameModel gameModel, List<ProcessMemory> previousScan) {
+            ThreadService.SetIsCurrentlyScanning(true);
+            string action = ThreadService.Dequeue();
+            if (action == "SaveAllLocationsAsCheats") {
+                HandleSavingMultipleCheats(cheat, gameModel, previousScan);
+            }
+            List<ProcessMemory> fitleredProcesses = MemoryService.FilterResults(previousScan, gameModel.ProcessName, action);
+
+            if (fitleredProcesses.Count == 1 && fitleredProcesses.First().CurrentCountOfMemoryLocations == 1) {
+                HandleFindingMemoryLocation(fitleredProcesses.First(), cheat, gameModel);
+            } else if (CouldHaveFoundMultipleMatches(previousScan)) {
+                ThreadService.SetHasPossiblyFoundAddress(true);
+                Console.WriteLine("Real Value and Display Value might have been found. If you are unable to narrow it down to a single memory location. Then select option #5.");
+            }
+            ThreadService.SetIsCurrentlyScanning(false);
+            return fitleredProcesses;
+        }
+
+        private static bool CouldHaveFoundMultipleMatches(List<ProcessMemory> previousScan) {
+            if (previousScan.Count > 3) {
+                return false; // More than 3 regions of memory still left to scan
+            }
+            int totalNumberOfMemoryAddressesLeft = 0;
+            foreach (ProcessMemory region in previousScan) {
+                totalNumberOfMemoryAddressesLeft += region.CurrentCountOfMemoryLocations;
+            }
+            return totalNumberOfMemoryAddressesLeft <= 3;
+        }
+
+        private static void HandleSavingMultipleCheats(CheatModel cheat, GameModel gameModel, List<ProcessMemory> previousScan) {
+            gameModel.Cheats.Remove(cheat);
+            Dictionary<ProcessMemory, long> offsetPerProcessMemory = new Dictionary<ProcessMemory, long>();
+            foreach (ProcessMemory region in previousScan) {
+                List<long> offsets = region.CalculateOffsetForMultipleMemoryLocations();
+                foreach (long offset in offsets) {
+                    offsetPerProcessMemory.Add(region, offset);
+                }
+            }
+            foreach (KeyValuePair<ProcessMemory, long> entry in offsetPerProcessMemory) {
+                CheatModel newCheat = new CheatModel(cheat);
+                newCheat.OffsetInMemory = entry.Value;
+                newCheat.RegionInfo = entry.Key.RetrieveRegionInfo();
+                gameModel.Cheats.Add(newCheat);
+            }
+            FileService.SerializeObjectToFile(gameModel, $"{gameModel.GameName}.json", FileService.GAME_FOLDER);
+            ThreadService.SetHasFoundAddress(true);
         }
     }
 }

@@ -72,6 +72,17 @@ namespace CheatManager.Models {
             return IntPtr.Subtract(locationOfMemory, BaseAddress.ToInt32()).ToInt64();
         }
 
+        public List<long> CalculateOffsetForMultipleMemoryLocations() {
+            List<long> offsets = new List<long>();
+            Dictionary<IntPtr, int> memory = RetrieveMemory();
+            foreach (KeyValuePair<IntPtr, int> entry in memory) {
+                Console.WriteLine($"{memory.First().Key} -> {memory.First().Value}");
+                IntPtr locationOfMemory = memory.Take(1).Select(d => d.Key).First();
+                offsets.Add(IntPtr.Subtract(locationOfMemory, BaseAddress.ToInt32()).ToInt64());
+            }
+            return offsets;
+        }
+
         public Dictionary<IntPtr, int> RetrieveMemory() {
             if (!DoesMemoryFileExist) {
                 return new Dictionary<IntPtr, int>();

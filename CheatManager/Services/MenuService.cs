@@ -64,6 +64,9 @@ namespace CheatManager.Services {
                 Console.WriteLine("2. Scan for Decrease of value you wish to find (Shift + -)");
                 Console.WriteLine("3. Scan for Change of value you wish to find (Shift + C)");
                 Console.WriteLine("4. Scan for value that has not changed you wish to find (Shift + E)");
+                if (ThreadService.RetrieveHasPossiblyFoundAddress()) {
+                    Console.WriteLine("5. Add Memory Locations as cheats");
+                }
                 string choice = Console.ReadLine();
 
                 switch (choice) {
@@ -78,6 +81,9 @@ namespace CheatManager.Services {
                         break;
                     case "4":
                         ThreadService.AddToQueue("Equals");
+                        break;
+                    case "5":
+                        ThreadService.AddToQueue("SaveAllLocationsAsCheats");
                         break;
                     default:
                         Console.WriteLine("Invalid choice");

@@ -9,6 +9,7 @@ namespace CheatManager.Services {
         private static string gameData;
         private static string currentCheat;
         private static string userRequestedCheat;
+        private static bool hasPossiblyFoundAddress;
 
         public static void AddToQueue(string scanType) {
             queue.Enqueue(scanType);
@@ -72,6 +73,14 @@ namespace CheatManager.Services {
 
         public static string RetrieveUserRequestedCheat() {
             return userRequestedCheat;
+        }
+
+        public static void SetHasPossiblyFoundAddress(bool hasPossiblyFoundMemoryAddress) {
+            hasPossiblyFoundAddress = hasPossiblyFoundMemoryAddress;
+        }
+
+        public static bool RetrieveHasPossiblyFoundAddress() {
+            return hasPossiblyFoundAddress;
         }
     }
 }

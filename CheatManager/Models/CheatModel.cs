@@ -35,5 +35,14 @@
         }
 
         public CheatModel() { }
+
+        public CheatModel(CheatModel otherCheatModel) {
+            CheatName = otherCheatModel.CheatName;
+            IsEnabled = otherCheatModel.IsEnabled;
+            CheatType = otherCheatModel.CheatType;
+            MultiplierType = otherCheatModel.MultiplierType;
+            Amount = otherCheatModel.Amount;
+            RangeForCheat = otherCheatModel.RangeForCheat;
+        }
     }
 }
