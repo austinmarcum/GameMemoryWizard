@@ -6,20 +6,22 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 
-
 namespace CheatManager {
     class Program {
+        // Todo -> Test the multiple locations fix
+        // Todo -> Shouldn't ask for the process name if the file already exists
         // Todo -> Checksum of app
-        // Todo -> Play Audio File when you find it
+        // Todo -> Game Save Backups
+        // Todo -> Test on Steam Deck
         // Todo -> Read Line in UI thread is still waiting even after cheat is saved
-        // Todo -> Test Cheat before saving (will need writer portion first)
+        // Todo -> Finish Readme
         static void Main(string[] args) {
             try {
                 Thread menuThread = new Thread(() => {
                     MenuService.DisplayMenu();
                 });
                 menuThread.Start();
-
+                
                 ThreadService.WaitForGameDataFromUi();
 
                 GameModel gameModel = JsonSerializer.Deserialize<GameModel>(ThreadService.RetrieveGameData());
@@ -39,6 +41,9 @@ namespace CheatManager {
                     }
                     Thread.Sleep(250);
                 }
+                menuThread.Interrupt();
+                Console.WriteLine("Cheat has been saved. Please start the Cheat Executor to enjoy!");
+                Thread.Sleep(5000);
             } catch (Exception e) {
                 Console.WriteLine($"Error: {e.Message}");
                 Thread.Sleep(5000);
@@ -50,6 +55,7 @@ namespace CheatManager {
 
         private static void HandleFindingMemoryLocation(ProcessMemory regionOfMemory, CheatModel cheat, GameModel gameModel) {
             ThreadService.SetHasFoundAddress(true);
+            AudioService.PlayChime();
             long offset = regionOfMemory.CalculateOffsetForSingleMemoryLocation();
             cheat.OffsetInMemory = offset;
             cheat.RegionInfo = regionOfMemory.RetrieveRegionInfo();
@@ -88,17 +94,17 @@ namespace CheatManager {
 
         private static void HandleSavingMultipleCheats(CheatModel cheat, GameModel gameModel, List<ProcessMemory> previousScan) {
             gameModel.Cheats.Remove(cheat);
-            Dictionary<ProcessMemory, long> offsetPerProcessMemory = new Dictionary<ProcessMemory, long>();
+            Dictionary<long, ProcessMemory> offsetPerProcessMemory = new Dictionary<long, ProcessMemory>();
             foreach (ProcessMemory region in previousScan) {
-                List<long> offsets = region.CalculateOffsetForMultipleMemoryLocations();
+                var offsets = region.CalculateOffsetForMultipleMemoryLocations();
                 foreach (long offset in offsets) {
-                    offsetPerProcessMemory.Add(region, offset);
+                    offsetPerProcessMemory.Add(offset, region);
                 }
             }
-            foreach (KeyValuePair<ProcessMemory, long> entry in offsetPerProcessMemory) {
+            foreach (KeyValuePair<long, ProcessMemory> entry in offsetPerProcessMemory) {
                 CheatModel newCheat = new CheatModel(cheat);
-                newCheat.OffsetInMemory = entry.Value;
-                newCheat.RegionInfo = entry.Key.RetrieveRegionInfo();
+                newCheat.OffsetInMemory = entry.Key;
+                newCheat.RegionInfo = entry.Value.RetrieveRegionInfo();
                 gameModel.Cheats.Add(newCheat);
             }
             FileService.SerializeObjectToFile(gameModel, $"{gameModel.GameName}.json", FileService.GAME_FOLDER);

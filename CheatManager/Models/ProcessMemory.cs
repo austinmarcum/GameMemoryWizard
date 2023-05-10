@@ -13,6 +13,7 @@ namespace CheatManager.Models {
         public StateEnum State { get; set; }
         public AllocationProtectEnum Protect { get; set; }
         public TypeEnum Type { get; set; }
+        public string ModuleName { get; set; }
 
         public string FileLocationOfMemory { get; set; }
         public bool DoesMemoryFileExist { get; set; }
@@ -76,8 +77,8 @@ namespace CheatManager.Models {
             List<long> offsets = new List<long>();
             Dictionary<IntPtr, int> memory = RetrieveMemory();
             foreach (KeyValuePair<IntPtr, int> entry in memory) {
-                Console.WriteLine($"{memory.First().Key} -> {memory.First().Value}");
-                IntPtr locationOfMemory = memory.Take(1).Select(d => d.Key).First();
+                Console.WriteLine($"{entry.Key} -> {entry.Value}");
+                IntPtr locationOfMemory = entry.Key;
                 offsets.Add(IntPtr.Subtract(locationOfMemory, BaseAddress.ToInt32()).ToInt64());
             }
             return offsets;

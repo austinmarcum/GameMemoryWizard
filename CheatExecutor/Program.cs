@@ -28,6 +28,8 @@ namespace CheatExecutor {
                         CheatModel cheat = cheatEntry.Key;
                         IntPtr locationInMemory = cheatEntry.Value;
                         if (cheat.CheatType == CheatType.Lock) {
+                            int currentValue = MemoryService.ReadMemory(processHandle, locationInMemory);
+                            Console.WriteLine("Value of Memory: " + currentValue);
                             MemoryService.WriteMemory(cheat.Amount, processHandle, locationInMemory);
                         }
                         if (cheat.CheatType == CheatType.Multiplier) {
@@ -92,6 +94,9 @@ namespace CheatExecutor {
         }
 
         private static ProcessMemory FindRegionOfMemoryForCheat(List<ProcessMemory> memoryRegions, CheatModel cheat) {
+            int countWithoutNames = memoryRegions.FindAll(x => x.RetrieveRegionInfo() == cheat.RegionInfo && x.ModuleName == "").Count;
+            int countWithNames = memoryRegions.FindAll(x => x.RetrieveRegionInfo() == cheat.RegionInfo && x.ModuleName != "").Count;
+
             foreach (ProcessMemory region in memoryRegions) {
                 if (region.RetrieveRegionInfo() == cheat.RegionInfo) {
                     return region;
