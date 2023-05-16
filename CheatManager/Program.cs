@@ -56,11 +56,14 @@ namespace CheatManager {
         private static void HandleFindingMemoryLocation(ProcessMemory regionOfMemory, CheatModel cheat, GameModel gameModel) {
             ThreadService.SetHasFoundAddress(true);
             AudioService.PlayChime();
-            long offset = regionOfMemory.CalculateOffsetForSingleMemoryLocation();
-            cheat.OffsetInMemory = offset;
+            OffsetResult offsetResult = MemoryOffsetService.RetrieveOffsetForMemory(regionOfMemory, gameModel.ProcessName);
+            cheat.OffsetInMemory = offsetResult.OffsetsForModule.First();
+            cheat.ModuleName = offsetResult.ModuleName;
             cheat.RegionInfo = regionOfMemory.RetrieveRegionInfo();
+            cheat.RegionId = offsetResult.RegionId;
+            MemoryOffsetService.FindRegionSignature(regionOfMemory, gameModel, cheat);
             FileService.SerializeObjectToFile(gameModel, $"{gameModel.GameName}.json", FileService.GAME_FOLDER);
-            Console.WriteLine($"Offset: {offset}");
+            Console.WriteLine($"Offset: { cheat.OffsetInMemory}");
         }
 
         private static List<ProcessMemory> FilterMemoryAndSaveCheatIfFound(CheatModel cheat, GameModel gameModel, List<ProcessMemory> previousScan) {
@@ -94,19 +97,23 @@ namespace CheatManager {
 
         private static void HandleSavingMultipleCheats(CheatModel cheat, GameModel gameModel, List<ProcessMemory> previousScan) {
             gameModel.Cheats.Remove(cheat);
-            Dictionary<long, ProcessMemory> offsetPerProcessMemory = new Dictionary<long, ProcessMemory>();
+            Dictionary<OffsetResult, ProcessMemory> offsetPerProcessMemory = new Dictionary<OffsetResult, ProcessMemory>();
             foreach (ProcessMemory region in previousScan) {
-                var offsets = region.CalculateOffsetForMultipleMemoryLocations();
-                foreach (long offset in offsets) {
-                    offsetPerProcessMemory.Add(offset, region);
+                OffsetResult offsetResult = MemoryOffsetService.RetrieveOffsetForMemory(region, gameModel.ProcessName);
+                offsetPerProcessMemory.Add(offsetResult, region);
+            }
+            foreach (KeyValuePair<OffsetResult, ProcessMemory> entry in offsetPerProcessMemory) {
+                foreach (long offset in entry.Key.OffsetsForModule) {
+                    CheatModel newCheat = new CheatModel(cheat);
+                    newCheat.OffsetInMemory = offset;
+                    newCheat.RegionInfo = entry.Value.RetrieveRegionInfo();
+                    newCheat.ModuleName = entry.Key.ModuleName;
+                    newCheat.RegionId = entry.Key.RegionId; 
+                    gameModel.Cheats.Add(newCheat);
                 }
+                MemoryOffsetService.FindRegionSignature(entry.Value, gameModel, gameModel.Cheats.Find(x => x.CheatName == cheat.CheatName));
             }
-            foreach (KeyValuePair<long, ProcessMemory> entry in offsetPerProcessMemory) {
-                CheatModel newCheat = new CheatModel(cheat);
-                newCheat.OffsetInMemory = entry.Key;
-                newCheat.RegionInfo = entry.Value.RetrieveRegionInfo();
-                gameModel.Cheats.Add(newCheat);
-            }
+           
             FileService.SerializeObjectToFile(gameModel, $"{gameModel.GameName}.json", FileService.GAME_FOLDER);
             ThreadService.SetHasFoundAddress(true);
         }

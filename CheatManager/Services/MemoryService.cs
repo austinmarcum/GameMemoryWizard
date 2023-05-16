@@ -122,7 +122,9 @@ namespace CheatManager.Services {
             var startAddress = IntPtr.Zero;
             UIntPtr endAddress = UIntPtr.Zero;
             var memoryInfo = new MEMORY_BASIC_INFORMATION();
+            List<string> viewedRegions = new List<string>();
             while (VirtualQueryEx(processHandle, endAddress, out memoryInfo, (uint)Marshal.SizeOf(memoryInfo)) > 0) {
+                viewedRegions.Add(memoryInfo.RetrieveRegionInfo());
                 startAddress = memoryInfo.BaseAddress;
                 try {
                     new UIntPtr(Convert.ToUInt64(startAddress.ToInt64() + memoryInfo.RegionSize.ToInt64()));
@@ -130,6 +132,7 @@ namespace CheatManager.Services {
                     return memoryRegions;
                 }
                 endAddress = new UIntPtr(Convert.ToUInt64(startAddress.ToInt64() + memoryInfo.RegionSize.ToInt64()));
+                int regionIndex = viewedRegions.FindAll(x => x == memoryInfo.RetrieveRegionInfo()).Count;
                 memoryRegions.Add(new ProcessMemory(memoryInfo));
             }
             return memoryRegions;
@@ -171,6 +174,10 @@ namespace CheatManager.Services {
             public StateEnum State;
             public AllocationProtectEnum Protect;
             public TypeEnum Type;
+
+            public string RetrieveRegionInfo() {
+                return $"{AllocationProtect.ToString()}-{RegionSize}-{State}-{Protect}-{Type}";
+            }
         }
 
         public enum StateEnum : uint {

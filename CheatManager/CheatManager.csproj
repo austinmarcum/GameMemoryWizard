@@ -85,7 +85,7 @@
     <Compile Include="Services\KeyboardShortcutService.cs" />
     <Compile Include="Services\MemoryService.cs" />
     <Compile Include="Services\MenuService.cs" />
-    <Compile Include="Services\RegionService.cs" />
+    <Compile Include="Services\MemoryOffsetService.cs" />
     <Compile Include="Services\ThreadService.cs" />
   </ItemGroup>
   <ItemGroup>

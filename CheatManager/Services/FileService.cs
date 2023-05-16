@@ -8,6 +8,7 @@ namespace CheatManager.Services {
     public class FileService {
 
         public static readonly string GAME_FOLDER = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + "\\Games\\";
+        public static readonly string GAME_REGIONS_FOLDER = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + "\\GamesRegions\\";
         public static readonly string DEFAULT_MEMORY_FOLDER = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + "\\TempMemoryStorage\\";
 
         public static void SerializeObjectToFile(object obj, string fileName, string folderName) {
@@ -69,6 +70,24 @@ namespace CheatManager.Services {
 
         public static bool DoesGameExist(string gameName) {
             return DoesFileExist(gameName + ".json", GAME_FOLDER);
+        }
+
+        public static bool DoesGameRegionExist(string fileName) {
+            return DoesFileExist(fileName, GAME_REGIONS_FOLDER);
+        }
+
+        public static void EnsureGameRegionsFolderExists() {
+            EnsureDirectoryExists(GAME_REGIONS_FOLDER);
+        }
+
+        public static List<string> RetrieveRegionFileNames(string fileStartsWith) {
+            DirectoryInfo directoryInfo = new DirectoryInfo(GAME_REGIONS_FOLDER);
+            FileInfo[] files = directoryInfo.GetFiles(fileStartsWith + "*.json");
+            List<string> fileNames = new List<string>();
+            foreach (FileInfo fileInfo in files) {
+                fileNames.Add(fileInfo.Name);
+            }
+            return fileNames;
         }
     }
 }

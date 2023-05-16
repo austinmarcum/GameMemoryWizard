@@ -13,6 +13,7 @@
 
     public class CheatModel {
         public string CheatName { get; set; }
+        public string ModuleName { get; set; }
         public bool IsEnabled { get; set; }
         public long OffsetInMemory { get; set; }
         public string RegionInfo { get; set; }
@@ -20,6 +21,7 @@
         public MultiplierType MultiplierType { get; set; }
         public int Amount { get; set; }
         public int[] RangeForCheat { get; set; }
+        public string RegionId { get; set; }
 
         // Used During Cheat Execution
         public int UnmodifiedValue { get; set; }
@@ -43,6 +45,7 @@
             MultiplierType = otherCheatModel.MultiplierType;
             Amount = otherCheatModel.Amount;
             RangeForCheat = otherCheatModel.RangeForCheat;
+            ModuleName = otherCheatModel.ModuleName;
         }
     }
 }

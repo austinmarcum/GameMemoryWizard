@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using static CheatManager.Services.MemoryService;
 
 namespace CheatExecutor {
     class Program {
@@ -16,7 +17,7 @@ namespace CheatExecutor {
                 GameModel gameModel = FileService.DeserializeObjectFromFile<GameModel>(args[0] + ".json", FileService.GAME_FOLDER);
                 Process gameProcess = WaitForProcess(gameModel.ProcessName);
                 IntPtr processHandle = gameProcess.Handle;
-                Dictionary<CheatModel, IntPtr> memoryLocationPerCheat = RetrieveMemoryLocationPerCheat(gameProcess, gameModel);
+                Dictionary<CheatModel, IntPtr> memoryLocationPerCheat = MemoryOffsetService.RetrieveMemoryLocationPerCheat(gameProcess, gameModel);
 
                 Thread keyboardShortcutThread = new Thread(() => {
                     KeyboardShortcutService.SetKeyboardShortcutForExecutor();
@@ -91,29 +92,6 @@ namespace CheatExecutor {
                 return true;
             }
             return false;
-        }
-
-        private static ProcessMemory FindRegionOfMemoryForCheat(List<ProcessMemory> memoryRegions, CheatModel cheat) {
-            int countWithoutNames = memoryRegions.FindAll(x => x.RetrieveRegionInfo() == cheat.RegionInfo && x.ModuleName == "").Count;
-            int countWithNames = memoryRegions.FindAll(x => x.RetrieveRegionInfo() == cheat.RegionInfo && x.ModuleName != "").Count;
-
-            foreach (ProcessMemory region in memoryRegions) {
-                if (region.RetrieveRegionInfo() == cheat.RegionInfo) {
-                    return region;
-                }
-            }
-            return null;
-        }
-
-        private static Dictionary<CheatModel, IntPtr> RetrieveMemoryLocationPerCheat(Process gameProcess, GameModel gameModel) {
-            Dictionary<CheatModel, IntPtr> memoryLocationPerCheat = new Dictionary<CheatModel, IntPtr>();
-            List<ProcessMemory> memoryRegions = MemoryService.RetrieveMemoryRegionsForProcess(gameProcess);
-            foreach (CheatModel cheat in gameModel.Cheats) {
-                ProcessMemory memoryRegion = FindRegionOfMemoryForCheat(memoryRegions, cheat);
-                IntPtr locationInMemoryForCheat = IntPtr.Add(memoryRegion.BaseAddress, Convert.ToInt32(cheat.OffsetInMemory));
-                memoryLocationPerCheat.Add(cheat, locationInMemoryForCheat);
-            }
-            return memoryLocationPerCheat;
         }
 
         private static Process WaitForProcess(string processName) {

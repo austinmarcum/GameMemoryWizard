@@ -13,7 +13,6 @@ namespace CheatManager.Models {
         public StateEnum State { get; set; }
         public AllocationProtectEnum Protect { get; set; }
         public TypeEnum Type { get; set; }
-        public string ModuleName { get; set; }
 
         public string FileLocationOfMemory { get; set; }
         public bool DoesMemoryFileExist { get; set; }
