@@ -1,11 +1,11 @@
-﻿using CheatManager;
-using CheatManager.Models;
+﻿using CheatManager.Models;
 using CheatManager.Services;
+using CheatManager.Services.MemoryServices;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
-using static CheatManager.Services.MemoryService;
 
 namespace CheatExecutor {
     class Program {
@@ -17,7 +17,7 @@ namespace CheatExecutor {
                 GameModel gameModel = FileService.DeserializeObjectFromFile<GameModel>(args[0] + ".json", FileService.GAME_FOLDER);
                 Process gameProcess = WaitForProcess(gameModel.ProcessName);
                 IntPtr processHandle = gameProcess.Handle;
-                Dictionary<CheatModel, IntPtr> memoryLocationPerCheat = MemoryOffsetService.RetrieveMemoryLocationPerCheat(gameProcess, gameModel);
+                Dictionary<CheatModel, IntPtr> memoryLocationPerCheat = RetrieveMemoryLocationPerCheat(gameProcess, gameModel);
 
                 Thread keyboardShortcutThread = new Thread(() => {
                     KeyboardShortcutService.SetKeyboardShortcutForExecutor();
@@ -107,6 +107,33 @@ namespace CheatExecutor {
         private static bool IsProcessRunning(string processName) {
             Process[] processes = Process.GetProcessesByName(processName);
             return processes.Length != 0;
+        }
+
+        public static Dictionary<CheatModel, IntPtr> RetrieveMemoryLocationPerCheat(Process gameProcess, GameModel gameModel) {
+            Dictionary<CheatModel, IntPtr> memoryLocationPerCheat = new Dictionary<CheatModel, IntPtr>();
+            List<ModuleMemoryInfo> moduleMemoryList = MemoryService.RetrieveModuleMemoryStructure(gameProcess.ProcessName);
+            Dictionary<string, MEMORY_BASIC_INFORMATION> foundMemoryRegions = new Dictionary<string, MEMORY_BASIC_INFORMATION>();
+            foreach (CheatModel cheat in gameModel.Cheats) {
+                Dictionary<MEMORY_BASIC_INFORMATION, double> highestProbablyRegions = RegionLocatorService.FindClosestMemoryRegionPerSignature(cheat, moduleMemoryList, gameModel, gameProcess, foundMemoryRegions);
+                MEMORY_BASIC_INFORMATION memoryRegionForCheat = RetrieveMemoryRegionForCheat(highestProbablyRegions, cheat);
+                if (!foundMemoryRegions.ContainsKey(cheat.RegionId)) {
+                    foundMemoryRegions.Add(cheat.RegionId, memoryRegionForCheat);
+                }
+                IntPtr locationInMemoryForCheat = IntPtr.Add(memoryRegionForCheat.BaseAddress, Convert.ToInt32(cheat.OffsetInMemory));
+                memoryLocationPerCheat.Add(cheat, locationInMemoryForCheat);
+            }
+            return memoryLocationPerCheat;
+        }
+
+        private static MEMORY_BASIC_INFORMATION RetrieveMemoryRegionForCheat(Dictionary<MEMORY_BASIC_INFORMATION, double> highestProbablyRegions, CheatModel cheat) {
+            if (highestProbablyRegions.Count == 1) {
+                return highestProbablyRegions.First().Key;
+            }
+            if (cheat.RangeForCheat.First() == cheat.RangeForCheat.Last()) {
+                // The user knew the value at the time when the cheat was created, therefore they will be able to confirm the value again
+
+            }
+            return new MEMORY_BASIC_INFORMATION();
         }
     }
 }

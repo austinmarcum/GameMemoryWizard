@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static CheatManager.Services.MemoryService;
 
 namespace CheatManager.Models {
     public class ProcessMemory {

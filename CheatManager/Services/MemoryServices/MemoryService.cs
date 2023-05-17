@@ -2,9 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace CheatManager.Services {
+namespace CheatManager.Services.MemoryServices {
     public class MemoryService {
 
         public static List<ProcessMemory> SearchAllMemoryOfProcess(string processName, int minValue, int maxValue) {
@@ -165,45 +166,53 @@ namespace CheatManager.Services {
             return $"{totalNumberOfFilteredMemoryLocationsInCurrentScan} Memory Locations Remaining ({numberOfFilteredOutLocations} filtered out)";
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MEMORY_BASIC_INFORMATION {
-            public IntPtr BaseAddress;
-            public IntPtr AllocationBase;
-            public AllocationProtectEnum AllocationProtect;
-            public IntPtr RegionSize;
-            public StateEnum State;
-            public AllocationProtectEnum Protect;
-            public TypeEnum Type;
+        public static List<ModuleMemoryInfo> RetrieveModuleMemoryStructure(string processName) {
+            var process = Process.GetProcessesByName(processName)[0];
+            IntPtr hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, process.Id);
+            List<ModuleMemoryInfo> modules = new List<ModuleMemoryInfo>();
 
-            public string RetrieveRegionInfo() {
-                return $"{AllocationProtect.ToString()}-{RegionSize}-{State}-{Protect}-{Type}";
+            if (hProcess == IntPtr.Zero) {
+                return modules;
             }
+
+            IntPtr[] moduleHandles = new IntPtr[1024];
+            uint cbNeeded;
+
+            if (EnumProcessModules(hProcess, moduleHandles, (uint)(moduleHandles.Length * IntPtr.Size), out cbNeeded)) {
+                uint moduleCount = cbNeeded / (uint)IntPtr.Size;
+                for (uint i = 0; i < moduleCount; i++) {
+                    char[] moduleName = new char[MAX_PATH];
+                    if (GetModuleFileNameEx(hProcess, moduleHandles[i], moduleName, MAX_PATH) != 0) {
+                        string moduleNameStr = new string(moduleName);
+                        moduleNameStr = moduleNameStr.Substring(0, moduleNameStr.IndexOf('\0'));
+
+                        IntPtr moduleBaseAddress = moduleHandles[i];
+                        ModuleMemoryInfo moduleMemory = new ModuleMemoryInfo(moduleNameStr);
+                        IntPtr currentAddress = moduleBaseAddress;
+                        MEMORY_BASIC_INFORMATION memoryInfo;
+                        while (VirtualQueryEx(hProcess, currentAddress, out memoryInfo, (uint)Marshal.SizeOf(typeof(MEMORY_BASIC_INFORMATION))) != 0) {
+                            if (memoryInfo.State == StateEnum.MEM_COMMIT && memoryInfo.Protect != AllocationProtectEnum.PAGE_NOACCESS) // Check for committed memory and exclude PAGE_NOACCESS regions
+                            {
+                                moduleMemory.Regions.Add(memoryInfo);
+                            }
+
+                            currentAddress = IntPtr.Add(memoryInfo.BaseAddress, (int)memoryInfo.RegionSize);
+                        }
+
+                        modules.Add(moduleMemory);
+                    }
+                }
+            }
+
+            CloseHandle(hProcess);
+            return modules;
         }
 
-        public enum StateEnum : uint {
-            MEM_COMMIT = 0x1000,
-            MEM_FREE = 0x10000,
-            MEM_RESERVE = 0x2000
-        }
-
-        public enum TypeEnum : uint {
-            MEM_IMAGE = 0x1000000,
-            MEM_MAPPED = 0x40000,
-            MEM_PRIVATE = 0x20000
-        }
-
-        public enum AllocationProtectEnum : uint {
-            PAGE_EXECUTE = 0x10,
-            PAGE_EXECUTE_READ = 0x20,
-            PAGE_EXECUTE_READWRITE = 0x40,
-            PAGE_EXECUTE_WRITECOPY = 0x80,
-            PAGE_NOACCESS = 0x01,
-            PAGE_READONLY = 0x02,
-            PAGE_READWRITE = 0x04,
-            PAGE_WRITECOPY = 0x08,
-            PAGE_GUARD = 0x100,
-            PAGE_NOCACHE = 0x200,
-            PAGE_WRITECOMBINE = 0x400
+        public static OffsetResult RetrieveOffsetForMemory(ProcessMemory regionOfMemory, string processName) {
+            List<long> offsetsPerRegion = regionOfMemory.CalculateOffsetForMultipleMemoryLocations();
+            List<ModuleMemoryInfo> moduleMemoryList = RetrieveModuleMemoryStructure(processName);
+            ModuleMemoryInfo moduleContainingMemoryInQuestion = moduleMemoryList.Where(x => x.Regions.Where(region => region.BaseAddress == regionOfMemory.BaseAddress) != null).First();
+            return new OffsetResult(moduleContainingMemoryInQuestion.ModuleName, offsetsPerRegion);
         }
 
         [DllImport("kernel32.dll")]
@@ -214,5 +223,24 @@ namespace CheatManager.Services {
 
         [DllImport("kernel32.dll")]
         static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, int nSize, out IntPtr lpNumberOfBytesWritten);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress, out MEMORY_BASIC_INFORMATION lpBuffer, uint dwLength);
+
+        [DllImport("psapi.dll")]
+        public static extern bool EnumProcessModules(IntPtr hProcess, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U4)] [In][Out] IntPtr[] lphModule, uint cb, out uint lpcbNeeded);
+
+        [DllImport("psapi.dll")]
+        public static extern uint GetModuleFileNameEx(IntPtr hProcess, IntPtr hModule, [Out] char[] lpBaseName, uint nSize);
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, int dwProcessId);
+
+        [DllImport("kernel32.dll")]
+        public static extern bool CloseHandle(IntPtr hObject);
+
+        public const uint PROCESS_QUERY_INFORMATION = 0x0400;
+        public const uint PROCESS_VM_READ = 0x0010;
+        public const int MAX_PATH = 260;
     }
 }

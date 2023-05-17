@@ -1,5 +1,6 @@
 ﻿using CheatManager.Models;
 using CheatManager.Services;
+using CheatManager.Services.MemoryServices;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -56,12 +57,12 @@ namespace CheatManager {
         private static void HandleFindingMemoryLocation(ProcessMemory regionOfMemory, CheatModel cheat, GameModel gameModel) {
             ThreadService.SetHasFoundAddress(true);
             AudioService.PlayChime();
-            OffsetResult offsetResult = MemoryOffsetService.RetrieveOffsetForMemory(regionOfMemory, gameModel.ProcessName);
+            OffsetResult offsetResult = MemoryService.RetrieveOffsetForMemory(regionOfMemory, gameModel.ProcessName);
             cheat.OffsetInMemory = offsetResult.OffsetsForModule.First();
             cheat.ModuleName = offsetResult.ModuleName;
             cheat.RegionInfo = regionOfMemory.RetrieveRegionInfo();
             cheat.RegionId = offsetResult.RegionId;
-            MemoryOffsetService.FindRegionSignature(regionOfMemory, gameModel, cheat);
+            RegionSignatureCreationService.FindRegionSignature(regionOfMemory, gameModel, cheat);
             FileService.SerializeObjectToFile(gameModel, $"{gameModel.GameName}.json", FileService.GAME_FOLDER);
             Console.WriteLine($"Offset: { cheat.OffsetInMemory}");
         }
@@ -99,7 +100,7 @@ namespace CheatManager {
             gameModel.Cheats.Remove(cheat);
             Dictionary<OffsetResult, ProcessMemory> offsetPerProcessMemory = new Dictionary<OffsetResult, ProcessMemory>();
             foreach (ProcessMemory region in previousScan) {
-                OffsetResult offsetResult = MemoryOffsetService.RetrieveOffsetForMemory(region, gameModel.ProcessName);
+                OffsetResult offsetResult = MemoryService.RetrieveOffsetForMemory(region, gameModel.ProcessName);
                 offsetPerProcessMemory.Add(offsetResult, region);
             }
             foreach (KeyValuePair<OffsetResult, ProcessMemory> entry in offsetPerProcessMemory) {
@@ -111,7 +112,7 @@ namespace CheatManager {
                     newCheat.RegionId = entry.Key.RegionId; 
                     gameModel.Cheats.Add(newCheat);
                 }
-                MemoryOffsetService.FindRegionSignature(entry.Value, gameModel, gameModel.Cheats.Find(x => x.CheatName == cheat.CheatName));
+                RegionSignatureCreationService.FindRegionSignature(entry.Value, gameModel, gameModel.Cheats.Find(x => x.CheatName == cheat.CheatName));
             }
            
             FileService.SerializeObjectToFile(gameModel, $"{gameModel.GameName}.json", FileService.GAME_FOLDER);
