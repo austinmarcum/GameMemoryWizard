@@ -18,6 +18,8 @@ namespace CheatManager {
         // Todo -> Finish Readme
         static void Main(string[] args) {
             try {
+                FileService.RestoreDotOldFiles();
+                //RegionSignatureCreationService.GenerateRegionSignature("Borderlands 2-4f01704b-6-1.json");
                 Thread menuThread = new Thread(() => {
                     MenuService.DisplayMenu();
                 });

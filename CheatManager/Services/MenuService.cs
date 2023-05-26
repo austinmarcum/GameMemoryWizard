@@ -160,5 +160,28 @@ namespace CheatManager.Services {
             Thread.Sleep(5000);
             throw new ApplicationException("Unable to find process");
         }
+
+        public static T SelectFromDictionary<T>(Dictionary<T, string> dictionary, string message) {
+            int retryCount = 0;
+            var maxRetries = 5;
+
+            while (retryCount < maxRetries) {
+                Console.WriteLine(message);
+                int index = 0;
+                Dictionary<string, T> indexPerChoice = new Dictionary<string, T>();
+                foreach (KeyValuePair<T, string> entry in dictionary) {
+                    Console.WriteLine($"{index++}. {entry.Value}");
+                    indexPerChoice.Add(index.ToString(), entry.Key);
+                }
+                string response = Console.ReadLine();
+                if (indexPerChoice.ContainsKey(response)) {
+                    return indexPerChoice[response];
+                } else {
+                    Console.WriteLine("Invalid choice");
+                    retryCount++;
+                }
+            }
+            throw new ApplicationException("Unable to find option");
+        }
     }
 }

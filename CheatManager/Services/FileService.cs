@@ -14,7 +14,30 @@ namespace CheatManager.Services {
         public static void SerializeObjectToFile(object obj, string fileName, string folderName) {
             EnsureDirectoryExists(folderName);
             string jsonString = JsonSerializer.Serialize(obj);
+            string filePath = folderName + fileName;
+            if (File.Exists(filePath)) {
+                File.Move(filePath, filePath + ".old");
+            }
             File.WriteAllText(folderName + fileName, jsonString);
+            if (File.Exists(filePath + ".old")) {
+                File.Delete(filePath + ".old");
+            }
+        }
+        public static void RestoreDotOldFiles() {
+            RestoreDotOldFilesPerFolder(GAME_FOLDER);
+            RestoreDotOldFilesPerFolder(GAME_REGIONS_FOLDER);
+        }
+
+        private static void RestoreDotOldFilesPerFolder(string folder) {
+            DirectoryInfo gameDirectory = new DirectoryInfo(folder);
+            FileInfo[] files = gameDirectory.GetFiles("*.old");
+            foreach (FileInfo file in files) {
+                string originalFileName = file.Name.Replace(".old", "");
+                if (File.Exists(originalFileName)) {
+                    File.Delete(originalFileName);
+                }
+                File.Move(file.Name, originalFileName);
+            }
         }
 
         public static void StoreMemoryAsJson(Dictionary<IntPtr, int> memory, string fileName) {

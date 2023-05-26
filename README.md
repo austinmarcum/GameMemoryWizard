@@ -1,6 +1,6 @@
 # Game Memory Wizard
 
-Still a work in progress! Initial planned release 5/21/2023! 
+Still a work in progress! Initial planned release 6/24/2023! 
 
 Playing video games are incredible. Sometimes you miss the good ol'days oh the game shark! A lot of the PC gaming cheat applications that exists today are not the easiest to make your own cheats as they require complex coding knowledge. The Game Memory Wizard aims to be a simple and appoachable way to be able to generate cheats for any *single player* gane.
 

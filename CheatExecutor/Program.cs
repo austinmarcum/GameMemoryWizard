@@ -10,14 +10,18 @@ using System.Threading;
 namespace CheatExecutor {
     class Program {
         static void Main(string[] args) {
+            List<Thread> regionSignatureThreads = new List<Thread>();
             try {
                 if (args.Length == 0) {
                     throw new ApplicationException("No game name provided. Cannot start cheats");
                 }
+                FileService.RestoreDotOldFiles();
                 GameModel gameModel = FileService.DeserializeObjectFromFile<GameModel>(args[0] + ".json", FileService.GAME_FOLDER);
                 Process gameProcess = WaitForProcess(gameModel.ProcessName);
                 IntPtr processHandle = gameProcess.Handle;
-                Dictionary<CheatModel, IntPtr> memoryLocationPerCheat = RetrieveMemoryLocationPerCheat(gameProcess, gameModel);
+                List<CheatLocationModel> memoryLocationPerCheat = RetrieveMemoryLocationPerCheat(gameProcess, gameModel);
+                regionSignatureThreads = SpinUpRegionSignatureThreads(memoryLocationPerCheat, gameModel);
+
 
                 Thread keyboardShortcutThread = new Thread(() => {
                     KeyboardShortcutService.SetKeyboardShortcutForExecutor();
@@ -25,9 +29,9 @@ namespace CheatExecutor {
                 keyboardShortcutThread.Start();
 
                 while (IsProcessRunning(gameModel.ProcessName)) {
-                    foreach (KeyValuePair<CheatModel, IntPtr> cheatEntry in memoryLocationPerCheat) {
-                        CheatModel cheat = cheatEntry.Key;
-                        IntPtr locationInMemory = cheatEntry.Value;
+                    foreach (CheatLocationModel cheatLocation in memoryLocationPerCheat) {
+                        CheatModel cheat = cheatLocation.Cheat;
+                        IntPtr locationInMemory = cheatLocation.MemoryLocationForCheat;
                         if (cheat.CheatType == CheatType.Lock) {
                             int currentValue = MemoryService.ReadMemory(processHandle, locationInMemory);
                             Console.WriteLine("Value of Memory: " + currentValue);
@@ -40,9 +44,9 @@ namespace CheatExecutor {
                     string userRequestedCheat = ThreadService.RetrieveUserRequestedCheat();
                     bool wasUserRequested = false;
                     if (userRequestedCheat == "Increase" || userRequestedCheat == "Decrease") {
-                        foreach (KeyValuePair<CheatModel, IntPtr> cheatEntry in memoryLocationPerCheat) {
-                            CheatModel cheat = cheatEntry.Key;
-                            IntPtr locationInMemory = cheatEntry.Value;
+                        foreach (CheatLocationModel cheatLocation in memoryLocationPerCheat) {
+                            CheatModel cheat = cheatLocation.Cheat;
+                            IntPtr locationInMemory = cheatLocation.MemoryLocationForCheat;
                             if (cheat.CheatType == CheatType.IncreaseTo && userRequestedCheat == "Increase") {
                                 wasUserRequested = true;
                                 int currentValue = MemoryService.ReadMemory(processHandle, locationInMemory);
@@ -68,6 +72,7 @@ namespace CheatExecutor {
             } finally {
                 KeyboardShortcutService.RemoveKeyboardShortcutForExecutor();
                 Console.WriteLine("KeyBoard Shorcut are no longer listening");
+                EndAllRegionSignatureThreads(regionSignatureThreads);
             }
         }
 
@@ -109,31 +114,39 @@ namespace CheatExecutor {
             return processes.Length != 0;
         }
 
-        public static Dictionary<CheatModel, IntPtr> RetrieveMemoryLocationPerCheat(Process gameProcess, GameModel gameModel) {
-            Dictionary<CheatModel, IntPtr> memoryLocationPerCheat = new Dictionary<CheatModel, IntPtr>();
+        public static List<CheatLocationModel> RetrieveMemoryLocationPerCheat(Process gameProcess, GameModel gameModel) {
+            List<CheatLocationModel> memoryLocationPerCheat = new List<CheatLocationModel>();
             List<ModuleMemoryInfo> moduleMemoryList = MemoryService.RetrieveModuleMemoryStructure(gameProcess.ProcessName);
-            Dictionary<string, MEMORY_BASIC_INFORMATION> foundMemoryRegions = new Dictionary<string, MEMORY_BASIC_INFORMATION>();
+            Dictionary<string, MemoryRegionModel> foundMemoryRegions = new Dictionary<string, MemoryRegionModel>();
             foreach (CheatModel cheat in gameModel.Cheats) {
-                Dictionary<MEMORY_BASIC_INFORMATION, double> highestProbablyRegions = RegionLocatorService.FindClosestMemoryRegionPerSignature(cheat, moduleMemoryList, gameModel, gameProcess, foundMemoryRegions);
-                MEMORY_BASIC_INFORMATION memoryRegionForCheat = RetrieveMemoryRegionForCheat(highestProbablyRegions, cheat);
+                MemoryRegionModel memoryRegionForCheat = RegionLocatorService.FindClosestMemoryRegionPerSignature(cheat, moduleMemoryList, gameModel, gameProcess, foundMemoryRegions);
                 if (!foundMemoryRegions.ContainsKey(cheat.RegionId)) {
                     foundMemoryRegions.Add(cheat.RegionId, memoryRegionForCheat);
                 }
-                IntPtr locationInMemoryForCheat = IntPtr.Add(memoryRegionForCheat.BaseAddress, Convert.ToInt32(cheat.OffsetInMemory));
-                memoryLocationPerCheat.Add(cheat, locationInMemoryForCheat);
+                IntPtr locationInMemoryForCheat = IntPtr.Add(memoryRegionForCheat.Region.BaseAddress, Convert.ToInt32(cheat.OffsetInMemory));
+                memoryLocationPerCheat.Add(new CheatLocationModel(cheat, new ProcessMemory(memoryRegionForCheat.Region), locationInMemoryForCheat, memoryRegionForCheat.ProbabilityOfCorrectRegion != 100));
             }
             return memoryLocationPerCheat;
         }
 
-        private static MEMORY_BASIC_INFORMATION RetrieveMemoryRegionForCheat(Dictionary<MEMORY_BASIC_INFORMATION, double> highestProbablyRegions, CheatModel cheat) {
-            if (highestProbablyRegions.Count == 1) {
-                return highestProbablyRegions.First().Key;
+        private static List<Thread> SpinUpRegionSignatureThreads(List<CheatLocationModel> cheatLocations, GameModel gameModel) {
+            List<string> regionsInThread = new List<string>();
+            List<Thread> regionSignatureRefinementThreads = new List<Thread>();
+            List<CheatLocationModel> regionsToRefine = cheatLocations.Where(x => x.DoesSignatureNeedRefined).ToList();
+            foreach (CheatLocationModel cheatLocation in regionsToRefine) {
+                Thread regionSignatureRefinementThread = new Thread(() => {
+                    RegionSignatureCreationService.RefineRegionSignature(cheatLocation, gameModel);
+                });
+                regionSignatureRefinementThreads.Add(regionSignatureRefinementThread);
+                regionSignatureRefinementThread.Start();
             }
-            if (cheat.RangeForCheat.First() == cheat.RangeForCheat.Last()) {
-                // The user knew the value at the time when the cheat was created, therefore they will be able to confirm the value again
+            return regionSignatureRefinementThreads;
+        }
 
+        private static void EndAllRegionSignatureThreads(List<Thread> threads) {
+            foreach (Thread thread in threads) {
+                thread.Abort();
             }
-            return new MEMORY_BASIC_INFORMATION();
         }
     }
 }
